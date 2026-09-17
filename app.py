@@ -1,19 +1,10 @@
 import os
-import subprocess
-import streamlit as st
-
-# 1. MUST BE THE VERY FIRST STREAMLIT COMMAND
-st.set_page_config(layout="wide", page_title="WHO SOP Assistant")
-
-# Lazy import query_sop to ensure DB exists before query_engine initializes
-from query_engine import query_sop
-
-# 2. Auto-ingest SOP PDF if database directory is missing or empty
-import os
+import sys
 import subprocess
 import streamlit as st
 import chromadb
 
+# MUST BE THE VERY FIRST STREAMLIT COMMAND
 st.set_page_config(layout="wide", page_title="WHO SOP Assistant")
 
 @st.cache_resource
@@ -30,7 +21,8 @@ def setup_database():
 
     if needs_ingestion:
         st.warning("First-time setup: Building ChromaDB vector store from SOP document...")
-        result = subprocess.run(["python", "ingest.py"], capture_output=True, text=True)
+        # Use sys.executable to ensure the correct Python interpreter is used
+        result = subprocess.run([sys.executable, "ingest.py"], capture_output=True, text=True)
         
         if result.returncode != 0:
             st.error("Ingestion failed during startup.")
@@ -41,8 +33,8 @@ def setup_database():
 
 setup_database()
 
-# Lazy-import query_engine AFTER database ingestion completes
-from query_engine import query_sop
+# Import AFTER the database is guaranteed to exist
+from query_engine import query_sop  # noqa: E402
 
 SOP_SECTIONS = {
     "Section 1: Introduction": "Defines acute public health events (PHEs) in AFR (over 85% being infectious disease outbreaks) and the roles of COs, AFRO, IST, and HQ.",

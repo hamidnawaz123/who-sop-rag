@@ -21,6 +21,26 @@ Understand the Roman Urdu query, extract facts strictly from the English Context
 
 _CACHED_MODEL = None
 
+
+@st.cache_resource
+def get_embedding_model():
+    """Load and cache the SentenceTransformer model (runs only once per session)."""
+    return SentenceTransformer("BAAI/bge-m3")
+
+
+def _get_groq_api_key() -> str:
+    """Safely resolve the Groq API key from Streamlit Secrets or local .env."""
+    try:
+        key = st.secrets["GROQ_API_KEY"]
+        if key:
+            return key
+    except (FileNotFoundError, KeyError):
+        pass
+    key = os.getenv("GROQ_API_KEY")
+    if not key:
+        raise RuntimeError("GROQ_API_KEY not found in Streamlit Secrets or .env file.")
+    return key
+
 def get_working_model(client: Groq) -> str:
     """Live-tests models against Groq to find an active text model for your key."""
     global _CACHED_MODEL
@@ -48,7 +68,7 @@ def get_working_model(client: Groq) -> str:
     raise RuntimeError("No active, non-gated text completion models found for this Groq API key.")
 
 def query_sop(user_query: str):
-    model = SentenceTransformer("BAAI/bge-m3")
+    model = get_embedding_model()
     query_vector = model.encode(user_query).tolist()
     
     client_db = chromadb.PersistentClient(path="./chroma_db")
@@ -61,8 +81,8 @@ def query_sop(user_query: str):
     
  
 
-# Pulls key from Streamlit Cloud Secrets first, then local .env
-    api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
+    # Pulls key from Streamlit Cloud Secrets first, then local .env
+    api_key = _get_groq_api_key()
     groq_client = Groq(api_key=api_key)
     active_model = get_working_model(groq_client)
     
