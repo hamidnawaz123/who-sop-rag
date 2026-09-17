@@ -1,7 +1,6 @@
 import argparse
 from pathlib import Path
-
-import  pymupdf as fitz
+import pymupdf as fitz
 import pdfplumber
 import chromadb
 from sentence_transformers import SentenceTransformer
@@ -65,7 +64,13 @@ def build_vector_store(chunks):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Ingest a SOP PDF into the vector store.")
-    parser.add_argument("pdf_path", type=Path, help="Path to the PDF file to ingest")
+    parser.add_argument(
+        "pdf_path",
+        type=Path,
+        nargs="?",
+        default=Path("REPORT_SOP_english_low.pdf"),
+        help="Path to the PDF file to ingest"
+    )
     args = parser.parse_args()
 
     if not args.pdf_path.is_file():
