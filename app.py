@@ -1,0 +1,63 @@
+
+from query_engine import query_sop
+import os
+import streamlit as st
+
+# Auto-ingest SOP PDF if database directory is missing
+@st.cache_resource
+def setup_database():
+    if not os.path.exists("./chroma_db") or not os.listdir("./chroma_db"):
+        st.warning("First-time setup: Ingesting WHO SOP document into vector store...")
+        from ingest import ingest_sop  # Replace with your main function name in ingest.py
+        ingest_sop("REPORT_SOP_english_low.pdf")
+        st.success("Vector store successfully built!")
+
+setup_database()
+
+st.set_page_config(layout="wide", page_title="WHO SOP Assistant")
+
+SOP_SECTIONS = {
+    "Section 1: Introduction": "Defines acute public health events (PHEs) in AFR (over 85% being infectious disease outbreaks) and the roles of COs, AFRO, IST, and HQ.",
+    "Section 2: Purpose & Scope": "Sets standard operations based on timeliness, consistency, technical excellence, and accountability across all WHO operational levels.",
+    "Section 3: Rationale": "Describes early warning coordination to prevent disease transmission across all 46 AFR member states despite limited country capacity.",
+    "Section 4: Operational Readiness": "Outlines readiness functions, APHEF funding mechanisms, RRT rosters, stockpiles, and emergency procurement procedures.",
+    "Section 5: Detecting & Assessing Acute PHEs": "Details media triage within 24h, Rapid Risk Assessment (RRA) criteria, EMS entry, and convening AFRO Emergency Meetings.",
+    "Section 6: Activating PHE Response": "Covers deployment of experts (24–72h for staff, 3–5 days for consultants), APHEF fund authorization, and logistics shipment within 72h.",
+    "Section 7: PHE Communications": "Defines operational communications (Sitreps, EMS), risk communications (EIS updates within 6–12h, Outbreak News), and media talking points.",
+    "Section 8: Monitoring PHE Response": "Establishes the continual risk management cycle (detection, risk assessment, control, evaluation) and regular joint teleconferences.",
+    "Section 9: Evaluation of PHE Response": "Mandates formative/summative evaluations within 4 weeks after an outbreak is declared over to assess response effectiveness.",
+    "Section 10: Improve Preparedness & Planning": "Guidelines for updating country and regional preparedness plans within 3 months based on post-response evaluation lessons.",
+    "Section 11: Response at WHO Country Office": "Specific CO workflows: verifying alerts within 24h, activating Task Forces, issuing preliminary reports within 48h, and daily Sitreps."
+}
+
+st.title("WHO Regional Office for Africa — SOP Chatbot")
+
+col_chat, col_summary = st.columns([2, 1])
+
+with col_chat:
+    st.subheader("Chatbot (Supports English & Roman Urdu)")
+    
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    if user_input := st.chat_input("Ask a question (e.g., 'Verification process kitna time leta hai?')..."):
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        with st.chat_message("user"):
+            st.markdown(user_input)
+            
+        with st.chat_message("assistant"):
+            response = query_sop(user_input)
+            st.markdown(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
+
+with col_summary:
+    st.subheader("SOP Document Structure")
+    st.caption("Click any section to expand its summary")
+    
+    for sec_title, sec_summary in SOP_SECTIONS.items():
+        with st.expander(sec_title):
+            st.write(sec_summary)

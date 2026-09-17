@@ -1,0 +1,19 @@
+# Environment & Security
+.env
+
+# Virtual Environments
+.venv/
+env/
+venv/
+
+# Database & Storage
+chroma_db/
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# IDE / Editor Files
+.vscode/
+.idea/
+.DS_Store
