@@ -1,20 +1,30 @@
-
-from query_engine import query_sop
 import os
+import subprocess
 import streamlit as st
 
-# Auto-ingest SOP PDF if database directory is missing
+# 1. MUST BE THE VERY FIRST STREAMLIT COMMAND
+st.set_page_config(layout="wide", page_title="WHO SOP Assistant")
+
+# Lazy import query_sop to ensure DB exists before query_engine initializes
+from query_engine import query_sop
+
+# 2. Auto-ingest SOP PDF if database directory is missing or empty
 @st.cache_resource
 def setup_database():
     if not os.path.exists("./chroma_db") or not os.listdir("./chroma_db"):
-        st.warning("First-time setup: Ingesting WHO SOP document into vector store...")
-        from ingest import ingest_sop  # Replace with your main function name in ingest.py
-        ingest_sop("REPORT_SOP_english_low.pdf")
+        st.warning("First-time setup: Building ChromaDB vector store from SOP document...")
+        
+        # Executes ingest.py directly as a process
+        result = subprocess.run(["python", "ingest.py"], capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            st.error("Ingestion failed during startup.")
+            st.code(result.stderr)
+            st.stop()
+            
         st.success("Vector store successfully built!")
 
 setup_database()
-
-st.set_page_config(layout="wide", page_title="WHO SOP Assistant")
 
 SOP_SECTIONS = {
     "Section 1: Introduction": "Defines acute public health events (PHEs) in AFR (over 85% being infectious disease outbreaks) and the roles of COs, AFRO, IST, and HQ.",
@@ -50,8 +60,9 @@ with col_chat:
             st.markdown(user_input)
             
         with st.chat_message("assistant"):
-            response = query_sop(user_input)
-            st.markdown(response)
+            with st.spinner("Searching SOPs..."):
+                response = query_sop(user_input)
+                st.markdown(response)
             st.session_state.messages.append({"role": "assistant", "content": response})
 
 with col_summary:
