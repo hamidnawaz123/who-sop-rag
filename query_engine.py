@@ -52,7 +52,8 @@ def query_sop(user_query: str):
     query_vector = model.encode(user_query).tolist()
     
     client_db = chromadb.PersistentClient(path="./chroma_db")
-    collection = client_db.get_collection(name="sop_chunks")
+    collection = client_db.get_or_create_collection(name="sop_chunks")
+    
     
     results = collection.query(query_embeddings=[query_vector], n_results=3)
     raw_context = "\n\n".join(results["documents"][0])

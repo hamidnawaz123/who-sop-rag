@@ -9,17 +9,28 @@ st.set_page_config(layout="wide", page_title="WHO SOP Assistant")
 from query_engine import query_sop
 
 # 2. Auto-ingest SOP PDF if database directory is missing or empty
+import os
+import subprocess
+import streamlit as st
+import chromadb
+
+st.set_page_config(layout="wide", page_title="WHO SOP Assistant")
+
 @st.cache_resource
 def setup_database():
-    if not os.path.exists("./chroma_db") or not os.listdir("./chroma_db"):
+    # Check directly inside ChromaDB if the collection exists and has chunks
+    needs_ingestion = True
+    try:
+        client = chromadb.PersistentClient(path="./chroma_db")
+        collection = client.get_collection(name="sop_chunks")
+        if collection.count() > 0:
+            needs_ingestion = False
+    except Exception:
+        needs_ingestion = True
+
+    if needs_ingestion:
         st.warning("First-time setup: Building ChromaDB vector store from SOP document...")
-        
-        # Pass the PDF filename as an argument to ingest.py
-        result = subprocess.run(
-            ["python", "ingest.py", "REPORT_SOP_english_low.pdf"], 
-            capture_output=True, 
-            text=True
-        )
+        result = subprocess.run(["python", "ingest.py"], capture_output=True, text=True)
         
         if result.returncode != 0:
             st.error("Ingestion failed during startup.")
@@ -27,6 +38,11 @@ def setup_database():
             st.stop()
             
         st.success("Vector store successfully built!")
+
+setup_database()
+
+# Lazy-import query_engine AFTER database ingestion completes
+from query_engine import query_sop
 
 SOP_SECTIONS = {
     "Section 1: Introduction": "Defines acute public health events (PHEs) in AFR (over 85% being infectious disease outbreaks) and the roles of COs, AFRO, IST, and HQ.",
