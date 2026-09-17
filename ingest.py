@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-import pymupdf as fitz
+import  fitz
 import pdfplumber
 import chromadb
 from sentence_transformers import SentenceTransformer
