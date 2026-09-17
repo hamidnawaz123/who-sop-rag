@@ -14,8 +14,12 @@ def setup_database():
     if not os.path.exists("./chroma_db") or not os.listdir("./chroma_db"):
         st.warning("First-time setup: Building ChromaDB vector store from SOP document...")
         
-        # Executes ingest.py directly as a process
-        result = subprocess.run(["python", "ingest.py"], capture_output=True, text=True)
+        # Pass the PDF filename as an argument to ingest.py
+        result = subprocess.run(
+            ["python", "ingest.py", "REPORT_SOP_english_low.pdf"], 
+            capture_output=True, 
+            text=True
+        )
         
         if result.returncode != 0:
             st.error("Ingestion failed during startup.")
@@ -23,8 +27,6 @@ def setup_database():
             st.stop()
             
         st.success("Vector store successfully built!")
-
-setup_database()
 
 SOP_SECTIONS = {
     "Section 1: Introduction": "Defines acute public health events (PHEs) in AFR (over 85% being infectious disease outbreaks) and the roles of COs, AFRO, IST, and HQ.",
